@@ -1,6 +1,9 @@
 import random
 import streamlit as st
 
+# FIX: check_guess was refactored out of app.py into logic_utils.py (paired with Claude).
+from logic_utils import check_guess
+
 def get_range_for_difficulty(difficulty: str):
     if difficulty == "Easy":
         return 1, 20
@@ -27,24 +30,6 @@ def parse_guess(raw: str):
         return False, None, "That is not a number."
 
     return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
@@ -154,13 +139,22 @@ if submit:
         st.error(err)
     else:
         st.session_state.history.append(guess_int)
-
+#FIXME: The secret number is being turned into text here.
         if st.session_state.attempts % 2 == 0:
             secret = str(st.session_state.secret)
         else:
             secret = st.session_state.secret
 
-        outcome, message = check_guess(guess_int, secret)
+        # FIX: check_guess now returns just the outcome, so the hint text is built here.
+        # Claude helped correct the directions: Too High -> go LOWER, Too Low -> go HIGHER.
+        outcome = check_guess(guess_int, secret)
+
+        hint_messages = {
+            "Win": "🎉 Correct!",
+            "Too High": "📉 Go LOWER!",
+            "Too Low": "📈 Go HIGHER!",
+        }
+        message = hint_messages[outcome]
 
         if show_hint:
             st.warning(message)
